@@ -1,0 +1,11 @@
+{
+  "watch": ["dist/Arenaq/server"],
+  "ignore": [
+    "dist/Arenaq/browser",
+    ".angular",
+    "node_modules",
+    "**/*.map"
+  ],
+  "ext": "mjs,js",
+  "delay": "200"
+}

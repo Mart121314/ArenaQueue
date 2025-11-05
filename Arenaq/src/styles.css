@@ -1,0 +1,96 @@
+/* Global reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+body {
+  background-color: #0d1117;
+  color: #e6edf3;
+  line-height: 1.6;
+}
+
+/* Links */
+a {
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #60a5fa;
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  background: #161b22;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #2d3748;
+}
+
+.navbar a {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  transition: color 0.2s ease;
+}
+
+.navbar a:hover {
+  color: #60a5fa;
+}
+
+.navbar a.active {
+  color: #3b82f6;
+  border-bottom: 2px solid #3b82f6;
+  padding-bottom: 4px;
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2rem;
+  background: #161b22;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+th, td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+th {
+  background: #1f2937;
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+tr:nth-child(even) {
+  background: #1a1f25;
+}
+
+tr:hover {
+  background: #2a2f3a;
+}
+
+/* Buttons */
+button {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.4rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #2563eb;
+}

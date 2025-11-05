@@ -1,0 +1,4 @@
+.home { padding: 1.25rem; }
+table { width: 100%; border-collapse: collapse; margin-top: .75rem; }
+th, td { padding: .5rem .6rem; border-bottom: 1px solid #2d3748; text-align: left; }
+thead th { position: sticky; top: 0; background: #161b22; }

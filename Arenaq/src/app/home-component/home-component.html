@@ -1,0 +1,46 @@
+<section class="home">
+  <h1>MoP Classic 3v3 — Recent Activity</h1>
+
+  @if (lastModified()) {
+    <p>Last updated: {{ lastModified() }}</p>
+  }
+
+  @if (loading()) {
+    <div>Loading…</div>
+  } @else if (error()) {
+    <div class="err">{{ error() }}</div>
+  } @else if (entries().length) {
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Realm</th>
+          <th>Faction</th>
+          <th>Rating</th>
+          <th>W-L</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (entry of entries(); track trackByEntry($index, entry)) {
+          <tr>
+            <td>{{ entry.rank }}</td>
+            <td>{{ entry.name }}</td>
+            <td>{{ entry.realm?.slug  }}</td>
+            <td>{{ entry.faction?.type }}</td>
+            <td>{{ entry.rating }}</td>
+            <td>
+              @if (entry.season_match_statistics) {
+                {{ entry.season_match_statistics.won }}–{{ entry.season_match_statistics.lost }}
+
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <div>No entries available.</div>
+  }
+</section>
+
