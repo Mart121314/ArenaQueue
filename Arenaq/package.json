@@ -2,7 +2,7 @@
   "name": "arenaq",
   "version": "0.0.0",
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "scripts": {
     "watch:build": "ng build --watch",
