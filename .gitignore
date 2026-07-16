@@ -3,6 +3,10 @@
 npm-debug.log
 yarn-error.log
 
+# Secrets
+.env
+.env.*
+
 # Compiled output
 /dist
 /tmp
