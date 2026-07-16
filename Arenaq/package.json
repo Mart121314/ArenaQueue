@@ -7,8 +7,7 @@
     "dev:ssr": "concurrently \"npm:watch:build\" \"npm:watch:serve\"",
     "build:ssr": "ng build",
     "serve:ssr": "node --enable-source-maps dist/Arenaq/server/server.mjs"
-  }
-,
+  },
   "prettier": {
     "printWidth": 100,
     "singleQuote": true,
@@ -35,10 +34,10 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@angular/build": "20.3.8",
+    "@angular/build": "^20.3.26",
     "@angular/cli": "^20.3.8",
     "@angular/compiler-cli": "^20.3.0",
-    "@angular/ssr": "20.3.8",
+    "@angular/ssr": "^20.3.26",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.1",
     "@types/jasmine": "~5.1.0",
