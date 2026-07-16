@@ -2,7 +2,7 @@
 import express from 'express';
 import { join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { createClient } from '@libsql/client';
 import {
   AngularNodeAppEngine,
   createNodeRequestHandler,
@@ -10,7 +10,6 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 
-const require = createRequire(import.meta.url);
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 const browserDistFolder = join(import.meta.dirname, '../browser');
@@ -27,27 +26,31 @@ app.use(
   }),
 );
 
-// --- DB setup (ESM-safe) ---
-const DATA_DIR = join(process.cwd(), 'data');
-if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-const DB_PATH = join(DATA_DIR, 'arenaq.db');
-
-let _db: any | null = null;
-function getDb() {
-  if (_db) return _db;
-  const BetterSqlite3 = require('better-sqlite3');
-  const db = new BetterSqlite3(DB_PATH);
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS recent_3v3 (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      rank INT, rating INT, name TEXT, realm_slug TEXT, faction TEXT, class_id INT,
-      played INT, won INT, lost INT,
-      updated_at TEXT
-    );
-  `);
-  _db = db;
-  return _db;
+// --- DB setup ---
+// Local dev: a SQLite file under ./data (no server to run, nothing to provision).
+// Production (e.g. Vercel): a remote Turso database — serverless platforms don't offer
+// persistent local disk, and libSQL's client API is identical either way.
+const TURSO_URL = process.env['TURSO_DATABASE_URL'];
+let dbUrl = TURSO_URL;
+if (!dbUrl) {
+  const DATA_DIR = join(process.cwd(), 'data');
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+  dbUrl = `file:${join(DATA_DIR, 'arenaq.db')}`;
 }
+
+const db = createClient({
+  url: dbUrl,
+  authToken: process.env['TURSO_AUTH_TOKEN'],
+});
+
+await db.execute(`
+  CREATE TABLE IF NOT EXISTS recent_3v3 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    rank INT, rating INT, name TEXT, realm_slug TEXT, faction TEXT, class_id INT,
+    played INT, won INT, lost INT,
+    updated_at TEXT
+  );
+`);
 
 // --- helpers ---
 function mapEntry(e: any) {
@@ -65,19 +68,20 @@ function mapEntry(e: any) {
   };
 }
 
-function replaceAll(entries: any[]) {
-  const db = getDb();
-  const clear = db.prepare('DELETE FROM recent_3v3');
-  const ins = db.prepare(`
-    INSERT INTO recent_3v3
-    (rank, rating, name, realm_slug, faction, class_id, played, won, lost, updated_at)
-    VALUES (@rank, @rating, @name, @realm_slug, @faction, @class_id, @played, @won, @lost, datetime('now'))
-  `);
-  const tx = db.transaction((rows: any[]) => {
-    clear.run();
-    for (const r of rows) ins.run(mapEntry(r));
-  });
-  tx(entries);
+async function replaceAll(entries: any[]) {
+  const mapped = entries.map(mapEntry);
+  await db.batch(
+    [
+      { sql: 'DELETE FROM recent_3v3', args: [] },
+      ...mapped.map((r) => ({
+        sql: `INSERT INTO recent_3v3
+              (rank, rating, name, realm_slug, faction, class_id, played, won, lost, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        args: [r.rank, r.rating, r.name, r.realm_slug, r.faction, r.class_id, r.played, r.won, r.lost],
+      })),
+    ],
+    'write'
+  );
 }
 
 // --- Blizzard Battle.net API (MoP Classic 3v3 PvP leaderboard) ---
@@ -186,7 +190,7 @@ async function refreshFromSource(): Promise<{ count: number }> {
     return { count: 0 };
   }
 
-  replaceAll(entries);
+  await replaceAll(entries);
   return { count: entries.length };
 }
 
@@ -202,11 +206,27 @@ app.post('/api/mop/3v3/refresh', async (_req, res) => {
   }
 });
 
+// Vercel Cron hits this on a schedule (GET, with an Authorization: Bearer $CRON_SECRET header
+// Vercel adds automatically when CRON_SECRET is set on the project).
+app.get('/api/cron/refresh', async (req, res) => {
+  const cronSecret = process.env['CRON_SECRET'];
+  if (cronSecret && req.headers['authorization'] !== `Bearer ${cronSecret}`) {
+    res.status(401).json({ ok: false, error: 'unauthorized' });
+    return;
+  }
+  try {
+    const { count } = await refreshFromSource();
+    res.json({ ok: true, count });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: e?.message ?? 'refresh failed' });
+  }
+});
+
 // 2) Manual refresh by client pushing payload (fallback if you don’t want SOURCE_URL)
-app.post('/api/mop/3v3/ingest', (req, res) => {
+app.post('/api/mop/3v3/ingest', async (req, res) => {
   try {
     const entries = Array.isArray(req.body) ? req.body : req.body?.entries ?? [];
-    replaceAll(entries);
+    await replaceAll(entries);
     res.json({ ok: true, count: entries.length });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: e?.message ?? 'ingest failed' });
@@ -227,22 +247,21 @@ function rowToEntry(r: any) {
 }
 
 // 3) Read for UI (most recently updated entries)
-app.get('/api/mop/3v3/recent', (_req, res) => {
+app.get('/api/mop/3v3/recent', async (_req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    const db = getDb();
-    const rows = db.prepare(`
+    const { rows } = await db.execute(`
       SELECT rank, rating, name, realm_slug, faction, class_id, played, won, lost, updated_at
       FROM recent_3v3
       ORDER BY updated_at DESC, rank ASC
       LIMIT 200
-    `).all();
+    `);
 
     const entries = rows.map(rowToEntry);
 
     res.json({
       ok: true,
-      meta: { latestSeasonId: _lastSeasonId, lastModified: rows[0]?.updated_at ?? null },
+      meta: { latestSeasonId: _lastSeasonId, lastModified: (rows[0] as any)?.updated_at ?? null },
       count: entries.length,
       entries,
     });
@@ -252,21 +271,20 @@ app.get('/api/mop/3v3/recent', (_req, res) => {
 });
 
 // 4) Full ranked standings
-app.get('/api/mop/3v3/leaderboard', (_req, res) => {
+app.get('/api/mop/3v3/leaderboard', async (_req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    const db = getDb();
-    const rows = db.prepare(`
+    const { rows } = await db.execute(`
       SELECT rank, rating, name, realm_slug, faction, class_id, played, won, lost, updated_at
       FROM recent_3v3
       ORDER BY rank ASC
-    `).all();
+    `);
 
     const entries = rows.map(rowToEntry);
 
     res.json({
       ok: true,
-      meta: { latestSeasonId: _lastSeasonId, lastModified: rows[0]?.updated_at ?? null },
+      meta: { latestSeasonId: _lastSeasonId, lastModified: (rows[0] as any)?.updated_at ?? null },
       count: entries.length,
       entries,
     });
@@ -276,7 +294,7 @@ app.get('/api/mop/3v3/leaderboard', (_req, res) => {
 });
 
 // 5) Character search by name
-app.get('/api/mop/3v3/search', (req, res) => {
+app.get('/api/mop/3v3/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const q = String(req.query['q'] ?? '').trim();
@@ -285,14 +303,16 @@ app.get('/api/mop/3v3/search', (req, res) => {
       return;
     }
     const limit = Math.min(50, Math.max(1, Number(req.query['limit']) || 10));
-    const db = getDb();
-    const rows = db.prepare(`
-      SELECT rank, rating, name, realm_slug, faction, class_id, played, won, lost, updated_at
-      FROM recent_3v3
-      WHERE name LIKE ?
-      ORDER BY rating DESC
-      LIMIT ?
-    `).all(`%${q}%`, limit);
+    const { rows } = await db.execute({
+      sql: `
+        SELECT rank, rating, name, realm_slug, faction, class_id, played, won, lost, updated_at
+        FROM recent_3v3
+        WHERE name LIKE ?
+        ORDER BY rating DESC
+        LIMIT ?
+      `,
+      args: [`%${q}%`, limit],
+    });
 
     const entries = rows.map(rowToEntry);
 
@@ -313,8 +333,10 @@ app.use((req, res, next) => {
 if (isMainModule(import.meta.url)) {
   const port = process.env['PORT'] || 4000;
   app.listen(port, () => console.log(`✅ Server listening on http://localhost:${port}`));
-  console.log('DB_PATH =', DB_PATH);
+  console.log('DB URL =', TURSO_URL ? '(Turso)' : dbUrl);
 
+  // Local dev only: Vercel has no long-running process for setInterval, so production refresh
+  // runs via Vercel Cron hitting GET /api/cron/refresh instead (see vercel.json).
   if (process.env['BLIZZARD_CLIENT_ID'] && process.env['BLIZZARD_CLIENT_SECRET']) {
     const refreshIntervalMin = Number(process.env['BLIZZARD_REFRESH_INTERVAL_MINUTES'] ?? 30);
 

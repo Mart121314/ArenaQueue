@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm run build:ssr",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
+  ],
+  "functions": {
+    "api/index.mjs": {
+      "includeFiles": "dist/Arenaq/**"
+    }
+  },
+  "crons": [
+    { "path": "/api/cron/refresh", "schedule": "0 8 * * *" }
+  ]
+}

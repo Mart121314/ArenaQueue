@@ -1,6 +1,9 @@
 {
   "name": "arenaq",
   "version": "0.0.0",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "watch:build": "ng build --watch",
     "watch:serve": "nodemon --signal SIGTERM dist/Arenaq/server/server.mjs",
@@ -29,6 +32,7 @@
     "@angular/platform-browser": "^20.3.0",
     "@angular/platform-server": "^20.3.0",
     "@angular/router": "^20.3.0",
+    "@libsql/client": "^0.17.4",
     "express": "^5.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
@@ -38,7 +42,6 @@
     "@angular/cli": "^20.3.8",
     "@angular/compiler-cli": "^20.3.0",
     "@angular/ssr": "^20.3.26",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.1",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^20.17.19",

@@ -15,8 +15,8 @@
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "externalDependencies": ["better-sqlite3", "bindings"],
-            "allowedCommonJsDependencies": ["better-sqlite3", "bindings"],
+            "externalDependencies": ["@libsql/client", "libsql"],
+            "allowedCommonJsDependencies": ["@libsql/client", "libsql"],
             "assets": [
               {
                 "glob": "**/*",
