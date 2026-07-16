@@ -13,9 +13,19 @@ import {
 const require = createRequire(import.meta.url);
 const app = express();
 const angularApp = new AngularNodeAppEngine();
+const browserDistFolder = join(import.meta.dirname, '../browser');
 
 app.set('etag', false);
 app.use(express.json());            // for POST /refresh JSON bodies
+
+// Serve static browser assets (JS/CSS bundles, favicon, etc.) before SSR
+app.use(
+  express.static(browserDistFolder, {
+    maxAge: '1y',
+    index: false,
+    redirect: false,
+  }),
+);
 
 // --- DB setup (ESM-safe) ---
 const DATA_DIR = join(process.cwd(), 'data');
