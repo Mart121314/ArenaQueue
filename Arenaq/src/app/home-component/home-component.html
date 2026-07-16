@@ -1,46 +1,61 @@
 <section class="home">
-  <h1>MoP Classic 3v3 — Recent Activity</h1>
-
-  @if (lastModified()) {
-    <p>Last updated: {{ lastModified() }}</p>
-  }
+  <h1 class="page-title"><span class="page-eyebrow">MoP 3v3</span> Activity</h1>
 
   @if (loading()) {
-    <div>Loading…</div>
+    <div class="empty-state">Loading…</div>
   } @else if (error()) {
-    <div class="err">{{ error() }}</div>
+    <div class="empty-state">{{ error() }}</div>
   } @else if (entries().length) {
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Player</th>
-          <th>Realm</th>
-          <th>Faction</th>
-          <th>Rating</th>
-          <th>W-L</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (entry of entries(); track trackByEntry($index, entry)) {
+    <div class="toolbar">
+      @if (lastModified()) {
+        <p class="meta">Last updated: {{ lastModified() }}</p>
+      }
+      <p class="meta">Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ entries().length }}</p>
+    </div>
+    <div class="panel">
+      <table>
+        <thead>
           <tr>
-            <td>{{ entry.rank }}</td>
-            <td>{{ entry.name }}</td>
-            <td>{{ entry.realm?.slug  }}</td>
-            <td>{{ entry.faction?.type }}</td>
-            <td>{{ entry.rating }}</td>
-            <td>
-              @if (entry.season_match_statistics) {
-                {{ entry.season_match_statistics.won }}–{{ entry.season_match_statistics.lost }}
-
-              }
-            </td>
+            <th>#</th>
+            <th>Player</th>
+            <th>Realm</th>
+            <th>Faction</th>
+            <th>Rating</th>
+            <th>W-L</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (entry of pagedEntries(); track trackByEntry($index, entry)) {
+            <tr>
+              <td class="rank">{{ entry.rank }}</td>
+              <td [style.color]="wowClass(entry.class?.id).color">{{ entry.name }}</td>
+              <td>{{ entry.realm?.slug }}</td>
+              <td [class.faction-horde]="entry.faction?.type === 'horde'"
+                  [class.faction-alliance]="entry.faction?.type === 'alliance'">
+                {{ entry.faction?.type }}
+              </td>
+              <td>{{ entry.rating }}</td>
+              <td>
+                @if (entry.season_match_statistics) {
+                  <span class="win">{{ entry.season_match_statistics.won }}</span>–<span class="loss">{{ entry.season_match_statistics.lost }}</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (pageCount() > 1) {
+      <div class="pagination">
+        <button (click)="goToPage(1)" [disabled]="page() === 1">«</button>
+        <button (click)="prevPage()" [disabled]="page() === 1">‹</button>
+        <span class="page-indicator">{{ page() }} / {{ pageCount() }}</span>
+        <button (click)="nextPage()" [disabled]="page() === pageCount()">›</button>
+        <button (click)="goToPage(pageCount())" [disabled]="page() === pageCount()">»</button>
+      </div>
+    }
   } @else {
-    <div>No entries available.</div>
+    <div class="empty-state">No entries available.</div>
   }
 </section>
-

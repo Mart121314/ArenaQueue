@@ -1,6 +1,7 @@
-import { Component, OnInit, Inject, PLATFORM_ID, signal } from '@angular/core';
+import { Component, OnInit, Inject, PLATFORM_ID, signal, computed } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { LadderService, LadderEntry } from '../services/ladder.service';
+import { wowClass } from '../wow-classes';
 
 @Component({
   selector: 'app-home',
@@ -14,6 +15,21 @@ export class HomeComponent implements OnInit {
   error = signal<string | null>(null);
   lastModified = signal<string | null>(null);
   entries = signal<LadderEntry[]>([]);
+
+  readonly pageSize = 25;
+  page = signal(1);
+
+  readonly wowClass = wowClass;
+
+  pageCount = computed(() => Math.max(1, Math.ceil(this.entries().length / this.pageSize)));
+
+  pagedEntries = computed(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    return this.entries().slice(start, start + this.pageSize);
+  });
+
+  rangeStart = computed(() => (this.entries().length ? (this.page() - 1) * this.pageSize + 1 : 0));
+  rangeEnd = computed(() => Math.min(this.page() * this.pageSize, this.entries().length));
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -47,4 +63,16 @@ export class HomeComponent implements OnInit {
     const faction = entry.faction?.type ?? 'nofaction';
     return `${realm}:${name}:${cls}:${faction}`;
   };
+
+  goToPage(p: number) {
+    this.page.set(Math.min(Math.max(1, p), this.pageCount()));
+  }
+
+  prevPage() {
+    this.goToPage(this.page() - 1);
+  }
+
+  nextPage() {
+    this.goToPage(this.page() + 1);
+  }
 }

@@ -27,4 +27,8 @@ export class LadderService {
   getMop3v3Recent() {
     return this.http.get<LadderResponse>(`${this.base}/mop/3v3/recent`);
   }
+
+  getMop3v3Leaderboard() {
+    return this.http.get<LadderResponse>(`${this.base}/mop/3v3/leaderboard`);
+  }
 }

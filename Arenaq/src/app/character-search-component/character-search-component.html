@@ -1,0 +1,55 @@
+<section class="character-search">
+  <h1 class="page-title"><span class="page-eyebrow">MoP 3v3</span> Search</h1>
+
+  <input
+    type="search"
+    class="search-input"
+    placeholder="Search for characters…"
+    [ngModel]="query"
+    (ngModelChange)="onQueryChange($event)"
+  />
+
+  @if (loading()) {
+    <div class="empty-state">Searching…</div>
+  } @else if (error()) {
+    <div class="empty-state">{{ error() }}</div>
+  } @else if (results().length) {
+    <div class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Realm</th>
+            <th>Faction</th>
+            <th>Rating</th>
+            <th>W-L</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of results(); track trackByEntry($index, entry)) {
+            <tr>
+              <td class="rank">{{ entry.rank }}</td>
+              <td [style.color]="wowClass(entry.class?.id).color">{{ entry.name }}</td>
+              <td>{{ entry.realm?.slug }}</td>
+              <td [class.faction-horde]="entry.faction?.type === 'horde'"
+                  [class.faction-alliance]="entry.faction?.type === 'alliance'">
+                {{ entry.faction?.type }}
+              </td>
+              <td>{{ entry.rating }}</td>
+              <td>
+                @if (entry.season_match_statistics) {
+                  <span class="win">{{ entry.season_match_statistics.won }}</span>–<span class="loss">{{ entry.season_match_statistics.lost }}</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (searched() && query.trim()) {
+    <div class="empty-state">No characters found for "{{ query }}".</div>
+  } @else {
+    <div class="empty-state">Start typing a character name to search.</div>
+  }
+</section>

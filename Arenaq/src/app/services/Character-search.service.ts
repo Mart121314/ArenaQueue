@@ -1,30 +1,26 @@
-import { Injectable } from "@angular/core";
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { LadderEntry } from './ladder.service';
 
-interface CharacterIndex {
-  characterClass: string;  
-  name: string;
-  realm: string;
-  specialization: string;
+export interface CharacterSearchResponse {
+  ok: boolean;
+  count: number;
+  entries: LadderEntry[];
 }
 
-
-@Injectable({providedIn: 'root'})
-
+@Injectable({ providedIn: 'root' })
 export class CharacterSearchService {
-    private readonly index: CharacterIndex[] = [
-        { name: 'Berly', realm: 'Stormscale', characterClass: 'Shaman', specialization: 'Restoration' },
-        { name: 'Nexyx', realm: 'Outland', characterClass: 'Warlock', specialization: 'Affliction' },
-        { name: 'Minami', realm: 'Kazzak', characterClass: 'Monk', specialization: 'Windwalker' }
-    ];
+  private base = environment.API_BASE;
 
-    search(query: string, limit = 5): CharacterIndex[]{
-        const q = query.trim().toLocaleLowerCase();  
-        if(!q) return [];
+  constructor(private http: HttpClient) {}
 
-        const normalizedLimit = Math.max(0, Math.floor(limit));  
+  search(query: string, limit = 10): Observable<CharacterSearchResponse> {
+    const q = query.trim();
+    if (!q) return of({ ok: true, count: 0, entries: [] });
 
-        return this.index
-            .filter(x=> x.name.toLocaleLowerCase().includes(q))
-            .slice(0, normalizedLimit)
-    }
+    const params = new HttpParams().set('q', q).set('limit', String(limit));
+    return this.http.get<CharacterSearchResponse>(`${this.base}/mop/3v3/search`, { params });
+  }
 }

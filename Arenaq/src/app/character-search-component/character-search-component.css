@@ -1,0 +1,10 @@
+.character-search {
+  padding: 1.5rem 2rem;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 28rem;
+  display: block;
+  margin-bottom: 1.5rem;
+}
