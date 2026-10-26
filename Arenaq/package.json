@@ -27,7 +27,7 @@
   "dependencies": {
     "@angular/build": "^20.3.26",
     "@angular/cli": "^20.3.8",
-    "@angular/common": "^20.3.0",
+    "@angular/common": "^20.3.28",
     "@angular/compiler": "^20.3.0",
     "@angular/compiler-cli": "^20.3.0",
     "@angular/core": "^20.3.0",
